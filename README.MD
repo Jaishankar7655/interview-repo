@@ -34,7 +34,7 @@ sudo systemctl start docker
 sudo apt install docker-compose -y
 ```
 
-### 🔹 Step 3: Add User to Docker Group
+### Step 3: Add User to Docker Group
 
 ```bash
 sudo usermod -aG docker $USER
