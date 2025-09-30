@@ -1,15 +1,4 @@
-# Documentation for the deplyoment 
-# deployment guide describing the steps and commands 
-# language used  python , and djnago 
-
-# Screenshots showing: 
-  1. acched in iamges in files in the root folder 
-
-# tech used to deploy 
- 1. docker and docker compose with nginx reverse proxy 
-
-# SSL certificate issuance.
-
+-----BEGIN CERTIFICATE-----
 MIID2TCCAsGgAwIBAgIUbtou4ojF9w3g6IzQDKTpyX+KDLgwDQYJKoZIhvcNAQEL
 BQAwfDELMAkGA1UEBhMCSU4xFzAVBgNVBAgMDm1hZGh5YSBwcmFkZXNoMQ8wDQYD
 VQQHDAZiaG9wYWwxDDAKBgNVBAoMA3h5ejEMMAoGA1UECwwDYWJjMScwJQYJKoZI
@@ -30,10 +19,5 @@ hvcNAQELBQADggEBACWJhJ4Hcw6JIO1jA0/MCRTBEDLM5vtj4yDeYTirOqmC3w8J
 AbcP9stuYaLLU+UBFdQXOJgJH0piEMYgauJkaHktnllckU4krTgPsgehpdfcIPpV
 whndPwrkCaQ5AtudipMyqRpcWkfX04GWT2hkCExrvKUCCH4QxTJxV+3ZKvbkkkkk
 vaF8FlpAm2TIKVIFmeG8KBDnOQj88s8iz3HNLk7aJAD2aw4jhCUz0NFDbyGEuQ0k
-MbV6rQaRZJjN2CQFILMbewEzpWC2MZk+BjR
-
-live url for the the webpage 
-# http://52.66.191.149:8000/
-
-
-https to https >>> done    
+MbV6rQaRZJjN2CQFILMbewEzpWC2MZk+BjRezVI=
+-----END CERTIFICATE-----
