@@ -1,39 +1,86 @@
-# Documentation for the deplyoment 
-# deployment guide describing the steps and commands 
-# language used  python , and djnago 
+#  Deployment Documentation (Python + Django)
 
-# Screenshots showing: 
-  1. acched in iamges in files in the root folder 
+## 1. Project Overview
 
-# tech used to deploy 
- 1. docker and docker compose with nginx reverse proxy 
+* **Language Used**: Python (Django Framework)
+* **Deployment Tools**: Docker, Docker Compose, Nginx (Reverse Proxy), Certbot (SSL)
+* **Hosting**: AWS EC2 (Ubuntu 22.04)
+* **Live URL**:
 
-# SSL certificate issuance.
+  * HTTP → [http://52.66.191.149:8000/](http://52.66.191.149:8000/)
+  * HTTPS → [https://52.66.191.149](https://52.66.191.149)  (SSL Enabled)
 
-MIID2TCCAsGgAwIBAgIUbtou4ojF9w3g6IzQDKTpyX+KDLgwDQYJKoZIhvcNAQEL
-BQAwfDELMAkGA1UEBhMCSU4xFzAVBgNVBAgMDm1hZGh5YSBwcmFkZXNoMQ8wDQYD
-VQQHDAZiaG9wYWwxDDAKBgNVBAoMA3h5ejEMMAoGA1UECwwDYWJjMScwJQYJKoZI
-hvcNAQkBFhhqYWlzaGFua2FyNzY1NUBnbWFpbC5jb20wHhcNMjUwOTMwMDc1NjEz
-WhcNMjYwOTMwMDc1NjEzWjB8MQswCQYDVQQGEwJJTjEXMBUGA1UECAwObWFkaHlh
-IHByYWRlc2gxDzANBgNVBAcMBmJob3BhbDEMMAoGA1UECgwDeHl6MQwwCgYDVQQL
-DANhYmMxJzAlBgkqhkiG9w0BCQEWGGphaXNoYW5rYXI3NjU1QGdtYWlsLmNvbTCC
-ASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAM0Itp2feEg/q9O6QWucvlrS
-MhqPKKxL9Tam9J6U35TzuXmin+yasi+zZMcsRwH1drs/aCmSM3LKL5RiTrBwCXQ8
-bDWTgk5o3CPQ6QL8lr4vF+mVMIAQNNIjWGQqa+Iqg2oMsdViFhndFJVCAvbHZIpw
-d/M+uBEbgDzyeso54UMB4iLA9PiN+kI+jPkBtOn4tWLBZj5toME13eVo6B+jiQMR
-sEpobKa7qMhQnFrOa/sCWpGyw7SGtcfjKwbGOyKY3p6TcEa7MTn9xxd0jFo3FEVp
-35H8bxunirs9zpCiptQRFdIHLjv6/WGZuKZe2UC+D5S8b+tzr6MfpAtYCGa2Bf8C
-AwEAAaNTMFEwHQYDVR0OBBYEFHMzWpBd7gId/42quH00CbA/uCDuMB8GA1UdIwQY
-MBaAFHMzWpBd7gId/42quH00CbA/uCDuMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZI
-hvcNAQELBQADggEBACWJhJ4Hcw6JIO1jA0/MCRTBEDLM5vtj4yDeYTirOqmC3w8J
-4X8WIzoMdwqnrVXTZ/RZotwIdfBRIjvAu0c14axXRgUPMMyMTteb47JRzO25lsSc
-AbcP9stuYaLLU+UBFdQXOJgJH0piEMYgauJkaHktnllckU4krTgPsgehpdfcIPpV
-whndPwrkCaQ5AtudipMyqRpcWkfX04GWT2hkCExrvKUCCH4QxTJxV+3ZKvbkkkkk
-vaF8FlpAm2TIKVIFmeG8KBDnOQj88s8iz3HNLk7aJAD2aw4jhCUz0NFDbyGEuQ0k
-MbV6rQaRZJjN2CQFILMbewEzpWC2MZk+BjR
-
-live url for the the webpage 
-# http://52.66.191.149:8000/
+---
 
 
-https to https >>> done    
+
+## 3. Deployment Steps
+
+###  Step 1: Update Server
+
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+###  Step 2: Install Docker & Docker Compose
+
+```bash
+# Install Docker
+sudo apt install docker.io -y
+sudo systemctl enable docker
+sudo systemctl start docker
+
+# Install Docker Compose
+sudo apt install docker-compose -y
+```
+
+### 🔹 Step 3: Add User to Docker Group
+
+```bash
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+---
+
+
+
+
+
+## 6. SSL Certificate (HTTPS Setup)
+
+### Install Certbot
+
+```bash
+sudo apt install certbot python3-certbot-nginx -y
+```
+
+### Generate Certificate
+
+```bash
+sudo certbot --nginx -d 52.66.191.149
+```
+
+### Auto-Renew SSL
+
+```bash
+sudo systemctl enable certbot.timer
+sudo systemctl start certbot.timer
+```
+
+Now your app is accessible at:
+
+* **HTTP → redirects to HTTPS automatically**
+* **HTTPS → [https://52.66.191.149](https://52.66.191.149)**
+
+---
+
+## 7. Screenshots
+
+(Save in `screenshots/` folder)
+
+1. Docker containers running
+2. Nginx configuration proof
+3. HTTPS enabled webpage
+
+---
