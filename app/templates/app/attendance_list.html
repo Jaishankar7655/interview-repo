@@ -1,0 +1,53 @@
+<!-- app/templates/app/attendance_list.html -->
+{% extends 'app/base.html' %}
+
+{% block content %}
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+    <h1 class="text-2xl font-bold">Attendance Records</h1>
+    <a href="{% url 'attendance_create' %}" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">Add New Record</a>
+</div>
+
+<div class="bg-white shadow-md rounded my-6 overflow-x-auto">
+    <table class="min-w-full bg-white">
+        <thead class="bg-gray-200 text-gray-600">
+            <tr>
+                <th class="py-3 px-4 text-left">Student</th>
+                <th class="py-3 px-4 text-left hidden md:table-cell">Class</th>
+                <th class="py-3 px-4 text-left">Date</th>
+                <th class="py-3 px-4 text-left">Status</th>
+                <th class="py-3 px-4 text-left hidden lg:table-cell">Notes</th>
+                <th class="py-3 px-4 text-left">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="text-gray-700">
+            {% for attendance in attendances %}
+            <tr class="border-b border-gray-200 hover:bg-gray-100">
+                <td class="py-3 px-4">{{ attendance.student.first_name }} {{ attendance.student.last_name }}</td>
+                <td class="py-3 px-4 hidden md:table-cell">{{ attendance.class_obj.name }}</td>
+                <td class="py-3 px-4">{{ attendance.date }}</td>
+                <td class="py-3 px-4">
+                    <span class="px-2 py-1 rounded-full text-xs font-semibold 
+                        {% if attendance.status == 'Present' %}bg-green-100 text-green-800
+                        {% elif attendance.status == 'Absent' %}bg-red-100 text-red-800
+                        {% elif attendance.status == 'Late' %}bg-yellow-100 text-yellow-800
+                        {% else %}bg-blue-100 text-blue-800{% endif %}">
+                        {{ attendance.status }}
+                    </span>
+                </td>
+                <td class="py-3 px-4 hidden lg:table-cell">{{ attendance.notes|truncatewords:5|default:"-" }}</td>
+                <td class="py-3 px-4">
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <a href="{% url 'attendance_edit' attendance.pk %}" class="text-blue-600 hover:text-blue-800 transition">Edit</a>
+                        <a href="{% url 'attendance_delete' attendance.pk %}" class="text-red-600 hover:text-red-800 transition">Delete</a>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="py-4 px-4 text-center">No attendance records found. <a href="{% url 'attendance_create' %}" class="text-red-600 hover:underline">Add a record</a> to get started.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

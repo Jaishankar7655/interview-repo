@@ -1,0 +1,15 @@
+# mysql-pv.yml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-pv
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:                  # Kind cluster में hostPath काम करेगा
+    path: "/tmp/data/mysql"
+  storageClassName: manual
+  persistentVolumeReclaimPolicy: Retain
+

@@ -1,0 +1,63 @@
+version: "3.9"
+
+services:
+  django:
+    build: .
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    networks:
+      - app_network
+    volumes:
+      - static_volume:/app/static
+      - media_volume:/app/media 
+    container_name: django_app
+    command: >
+           sh -c "until nc -z mysql_db 3306; do echo Waiting for MySQL...; sleep 3; done;
+            python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+
+
+  mysql:
+    image: mysql:8.0
+    env_file:
+      - .env
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - app_network
+    container_name: mysql_db
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${MYSQL_ROOT_USER}", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      retries: 5
+      timeout: 5s
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - static_volume:/static
+      - media_volume:/media 
+    depends_on:
+      - django
+    networks:
+      - app_network
+    container_name: nginx_proxy
+
+volumes:
+  db_data:
+  static_volume:
+  media_volume:
+
+networks:
+  app_network:
+    driver: bridge
