@@ -1,35 +1,24 @@
-# Django Project Deployment on Ubuntu VPS with Gunicorn and Nginx
+# 🚀 Django Project Deployment Guide
 
-This document provides a complete step-by-step guide for deploying a Django project (`project` with app `app`) using **Gunicorn** and **Nginx** on an Ubuntu VPS, such as HostingRaja or AWS EC2.
-
----
-
-## 1. Prerequisites
-
-* Ubuntu VPS with SSH access
-* Python 3.12 installed
-* MySQL database configured
-* Project structure:
-
-```
-/var/www/interview-repo/
-├── project/      # Django project
-├── app/          # Django app
-├── manage.py
-├── requirements.txt
-├── media/
-├── static/
-```
-
-* Installed packages:
-
-```bash
-sudo apt update && sudo apt install python3 python3-venv python3-pip nginx git build-essential pkg-config python3-dev default-libmysqlclient-dev -y
-```
+This canvas version is a visual checklist-style guide for deploying a Django project on Ubuntu VPS with Gunicorn & Nginx.
 
 ---
 
-## 2. Set Folder Ownership
+## 1️⃣ Prerequisites
+
+* 🖥️ Ubuntu VPS with SSH access
+* 🐍 Python 3.12
+* 🛢️ MySQL Database
+* 📂 Project structure
+* 📦 Required packages:
+
+  ```bash
+  sudo apt update && sudo apt install python3 python3-venv python3-pip nginx git build-essential pkg-config python3-dev default-libmysqlclient-dev -y
+  ```
+
+---
+
+## 2️⃣ Folder Permissions
 
 ```bash
 sudo chown -R ubuntu:www-data /var/www/interview-repo
@@ -39,7 +28,7 @@ cd /var/www/interview-repo
 
 ---
 
-## 3. Create Virtual Environment
+## 3️⃣ Virtual Environment
 
 ```bash
 python3 -m venv venv
@@ -48,7 +37,7 @@ source venv/bin/activate
 
 ---
 
-## 4. Install Python Dependencies
+## 4️⃣ Install Dependencies
 
 ```bash
 pip install --upgrade pip
@@ -58,19 +47,14 @@ pip install gunicorn mysqlclient
 
 ---
 
-## 5. Configure Environment Variables
+## 5️⃣ Environment Variables
 
-Create `.env` file:
-
-```bash
-nano .env
-```
+`.env` file:
 
 ```env
 SECRET_KEY=your_secret_key
 DEBUG=False
 ALLOWED_HOSTS=16.171.165.101
-
 MYSQL_DATABASE=your_db_name
 MYSQL_USER=your_db_user
 MYSQL_PASSWORD=your_db_password
@@ -80,7 +64,7 @@ MYSQL_PORT=3306
 
 ---
 
-## 6. Apply Migrations and Collect Static Files
+## 6️⃣ Migrations & Static Files
 
 ```bash
 python manage.py migrate
@@ -89,22 +73,20 @@ python manage.py collectstatic --noinput
 
 ---
 
-## 7. Test Gunicorn
+## 7️⃣ Test Gunicorn
 
 ```bash
 gunicorn project.wsgi:application --bind 0.0.0.0:8000
 ```
 
-* Check: `http://16.171.165.101:8000`
-* Stop server with `Ctrl + C`
+* 🌐 Check: `http://16.171.165.101:8000`
+* ❌ Stop: `Ctrl + C`
 
 ---
 
-## 8. Create Gunicorn Systemd Service
+## 8️⃣ Gunicorn Systemd Service
 
-```bash
-sudo nano /etc/systemd/system/project.service
-```
+`/etc/systemd/system/project.service`
 
 ```ini
 [Unit]
@@ -121,8 +103,6 @@ ExecStart=/var/www/interview-repo/venv/bin/gunicorn --workers 3 --bind unix:/var
 WantedBy=multi-user.target
 ```
 
-Enable and start service:
-
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl start project
@@ -132,11 +112,9 @@ sudo systemctl status project
 
 ---
 
-## 9. Configure Nginx
+## 9️⃣ Configure Nginx
 
-```bash
-sudo nano /etc/nginx/sites-available/project
-```
+`/etc/nginx/sites-available/project`
 
 ```nginx
 server {
@@ -160,8 +138,6 @@ server {
 }
 ```
 
-Enable site and restart Nginx:
-
 ```bash
 sudo ln -s /etc/nginx/sites-available/project /etc/nginx/sites-enabled
 sudo nginx -t
@@ -171,27 +147,21 @@ sudo systemctl enable nginx
 
 ---
 
-## 10. Open HTTP Port on VPS
+## 🔓 Open HTTP Port
 
-* EC2 Security Group / HostingRaja Firewall:
-
-  * Inbound rule: TCP 80 → Source 0.0.0.0/0
+* EC2 Security Group / Firewall: `TCP 80` → Source `0.0.0.0/0`
 
 ---
 
-## 11. Test Deployment
+## 🌐 Test Deployment
 
-Open browser:
+Open: `http://16.171.165.101/`
 
-```
-http://16.171.165.101/
-```
-
-✅ Your Django site should be live via **Nginx → Gunicorn → Django**
+✅ Django site should be live (Nginx → Gunicorn → Django)
 
 ---
 
-## 12. Optional: Enable HTTPS
+## 🔒 Optional HTTPS
 
 ```bash
 sudo apt install certbot python3-certbot-nginx -y
@@ -200,16 +170,13 @@ sudo certbot --nginx -d 16.171.165.101
 
 ---
 
-### ✅ Deployment Flow Summary
+## 📝 Deployment Flow
 
 ```
-Browser → Nginx → Gunicorn → project/wsgi.py (application) → Django → MySQL → Response
+Browser → Nginx → Gunicorn → project/wsgi.py → Django → MySQL → Response
 ```
 
-* Nginx serves static/media files directly
-* Gunicorn communicates with Django via `wsgi.py`
-* MySQL handles database operations
-* Response goes back to user via Gunicorn → Nginx
-
-```
-```
+* Nginx: serves static/media files
+* Gunicorn: communicates with Django
+* MySQL: database operations
+* Response: Gunicorn → Nginx → Browser
