@@ -1,215 +1,183 @@
-# Django Project Deployment on Ubuntu VPS with Gunicorn and Nginx
+# School Management System — Django
 
-This document provides a complete step-by-step guide for deploying a Django project (`project` with app `app`) using **Gunicorn** and **Nginx** on an Ubuntu VPS, such as HostingRaja or AWS EC2.
+A Django app (project `project`, app `app`) for managing students, teachers,
+classes and attendance. It runs on **SQLite** and is served in production by
+**Gunicorn** behind **Nginx** on `http://34.229.200.54/`.
+
+```
+Browser → Nginx (:80) → Gunicorn (127.0.0.1:8000) → project/wsgi.py → Django → SQLite
+```
+
+Nginx serves `/static/` and `/media/` directly from disk; everything else is
+proxied to Gunicorn.
 
 ---
 
-## 1. Prerequisites
-
-* Ubuntu VPS with SSH access
-* Python 3.12 installed
-* MySQL database configured
-* Project structure:
+## Project structure
 
 ```
-/var/www/interview-repo/
-├── project/      # Django project
-├── app/          # Django app
+School-app/
+├── app/                 # Django app (models, views, templates, migrations)
+├── project/             # Django project (settings, urls, wsgi, asgi)
+├── deploy/
+│   ├── gunicorn.conf.py # Gunicorn settings (workers, bind, logging)
+│   ├── gunicorn.service # systemd unit template
+│   └── nginx.conf       # Nginx site template
+├── deploy.sh            # one-shot server setup script
 ├── manage.py
 ├── requirements.txt
-├── media/
-├── static/
-```
-
-* Installed packages:
-
-```bash
-sudo apt update && sudo apt install python3 python3-venv python3-pip nginx git build-essential pkg-config python3-dev default-libmysqlclient-dev -y
+├── db.sqlite3           # SQLite database
+├── media/               # uploaded files (student photos)
+└── .env                 # environment configuration
 ```
 
 ---
 
-## 2. Set Folder Ownership
+## 1. Quick deploy (recommended)
+
+On the Ubuntu server (e.g. the EC2 instance at `34.229.200.54`):
 
 ```bash
-sudo chown -R ubuntu:www-data /var/www/interview-repo
-sudo chmod -R 755 /var/www/interview-repo
-cd /var/www/interview-repo
+# Recommended location — its parent (/var/www) is readable by Nginx.
+sudo mkdir -p /var/www
+sudo chown "$USER":"$USER" /var/www
+git clone <your-repo-url> /var/www/school-app
+cd /var/www/school-app
+
+# Review .env, then run the installer.
+sudo ./deploy.sh
+```
+
+`deploy.sh` is idempotent and does everything:
+
+1. Installs `python3-venv`, `pip` and `nginx`.
+2. Creates `venv/` and installs `requirements.txt`.
+3. Runs `migrate` and `collectstatic`.
+4. Sets ownership/permissions for Nginx.
+5. Installs and starts the `gunicorn` systemd service.
+6. Installs and enables the Nginx site, then reloads Nginx.
+
+Then create an admin user and open the site:
+
+```bash
+sudo -u "$USER" /var/www/school-app/venv/bin/python manage.py createsuperuser
+```
+
+* App:   `http://34.229.200.54/`
+* Admin: `http://34.229.200.54/admin/`
+
+> **Open port 80** in your cloud firewall / EC2 security group
+> (Inbound: TCP 80, Source `0.0.0.0/0`).
+
+Override defaults if needed:
+
+```bash
+sudo APP_USER=ubuntu SERVER_NAME=34.229.200.54 ./deploy.sh
 ```
 
 ---
 
-## 3. Create Virtual Environment
+## 2. Configuration (`.env`)
+
+```env
+SECRET_KEY="change-me-to-a-long-random-string"
+DEBUG=False
+ALLOWED_HOSTS=34.229.200.54,localhost,127.0.0.1
+CSRF_TRUSTED_ORIGINS=http://34.229.200.54
+
+# SQLite needs no server or credentials. Optional custom path:
+# SQLITE_PATH=/var/www/school-app/db.sqlite3
+```
+
+Generate a fresh secret key:
+
+```bash
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
+
+Settings load `.env` automatically via `python-dotenv`, so the same values are
+used by Gunicorn, `manage.py`, and the dev server.
+
+---
+
+## 3. Manual deployment (without deploy.sh)
+
+<details>
+<summary>Step-by-step equivalent</summary>
+
+```bash
+# System packages
+sudo apt update && sudo apt install -y python3 python3-venv python3-pip nginx
+
+# App
+cd /var/www/school-app
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# Database + static
+python manage.py migrate
+python manage.py collectstatic --noinput
+
+# Gunicorn systemd service (fill in the placeholders)
+sudo sed -e "s|__APP_DIR__|/var/www/school-app|g" \
+         -e "s|__APP_USER__|ubuntu|g" \
+         deploy/gunicorn.service | sudo tee /etc/systemd/system/gunicorn.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now gunicorn
+
+# Nginx site
+sudo sed -e "s|__APP_DIR__|/var/www/school-app|g" \
+         -e "s|__SERVER_NAME__|34.229.200.54|g" \
+         deploy/nginx.conf | sudo tee /etc/nginx/sites-available/school-app
+sudo ln -sf /etc/nginx/sites-available/school-app /etc/nginx/sites-enabled/school-app
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl restart nginx
+```
+
+</details>
+
+---
+
+## 4. Local development
 
 ```bash
 python3 -m venv venv
-source venv/bin/activate
-```
-
----
-
-## 4. Install Python Dependencies
-
-```bash
-pip install --upgrade pip
+source venv/bin/activate           # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-pip install gunicorn mysqlclient
-```
-
----
-
-## 5. Configure Environment Variables
-
-Create `.env` file:
-
-```bash
-nano .env
-```
-
-```env
-SECRET_KEY=your_secret_key
-DEBUG=False
-ALLOWED_HOSTS=16.171.165.101
-
-MYSQL_DATABASE=your_db_name
-MYSQL_USER=your_db_user
-MYSQL_PASSWORD=your_db_password
-MYSQL_HOST=localhost
-MYSQL_PORT=3306
-```
-
----
-
-## 6. Apply Migrations and Collect Static Files
-
-```bash
 python manage.py migrate
-python manage.py collectstatic --noinput
+python manage.py runserver
 ```
+
+Visit `http://127.0.0.1:8000/`. To see full error pages and admin styling
+locally, set `DEBUG=True` in `.env` (dev only — keep it `False` on the server).
 
 ---
 
-## 7. Test Gunicorn
+## 5. Operations
 
 ```bash
-gunicorn project.wsgi:application --bind 0.0.0.0:8000
+sudo systemctl status gunicorn        # service state
+sudo journalctl -u gunicorn -f        # live application logs
+sudo systemctl restart gunicorn       # after code changes
+sudo nginx -t && sudo systemctl reload nginx
 ```
 
-* Check: `http://16.171.165.101:8000`
-* Stop server with `Ctrl + C`
-
----
-
-## 8. Create Gunicorn Systemd Service
+After pulling new code:
 
 ```bash
-sudo nano /etc/systemd/system/project.service
-```
-
-```ini
-[Unit]
-Description=Gunicorn daemon for Django project
-After=network.target
-
-[Service]
-User=ubuntu
-Group=www-data
-WorkingDirectory=/var/www/interview-repo
-ExecStart=/var/www/interview-repo/venv/bin/gunicorn --workers 3 --bind unix:/var/www/interview-repo/project.sock project.wsgi:application
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Enable and start service:
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl start project
-sudo systemctl enable project
-sudo systemctl status project
+cd /var/www/school-app
+sudo ./deploy.sh                      # re-installs deps, migrates, collects static, restarts
 ```
 
 ---
 
-## 9. Configure Nginx
+## Notes
 
-```bash
-sudo nano /etc/nginx/sites-available/project
-```
-
-```nginx
-server {
-    listen 80;
-    server_name 16.171.165.101;
-
-    location = /favicon.ico { access_log off; log_not_found off; }
-
-    location /static/ {
-        root /var/www/interview-repo;
-    }
-
-    location /media/ {
-        root /var/www/interview-repo;
-    }
-
-    location / {
-        include proxy_params;
-        proxy_pass http://unix:/var/www/interview-repo/project.sock;
-    }
-}
-```
-
-Enable site and restart Nginx:
-
-```bash
-sudo ln -s /etc/nginx/sites-available/project /etc/nginx/sites-enabled
-sudo nginx -t
-sudo systemctl restart nginx
-sudo systemctl enable nginx
-```
-
----
-
-## 10. Open HTTP Port on VPS
-
-* EC2 Security Group / HostingRaja Firewall:
-
-  * Inbound rule: TCP 80 → Source 0.0.0.0/0
-
----
-
-## 11. Test Deployment
-
-Open browser:
-
-```
-http://16.171.165.101/
-```
-
-✅ Your Django site should be live via **Nginx → Gunicorn → Django**
-
----
-
-## 12. Optional: Enable HTTPS
-
-```bash
-sudo apt install certbot python3-certbot-nginx -y
-sudo certbot --nginx -d 16.171.165.101
-```
-
----
-
-### ✅ Deployment Flow Summary
-
-```
-Browser → Nginx → Gunicorn → project/wsgi.py (application) → Django → MySQL → Response
-```
-
-* Nginx serves static/media files directly
-* Gunicorn communicates with Django via `wsgi.py`
-* MySQL handles database operations
-* Response goes back to user via Gunicorn → Nginx
-
-```
-```
+* **Database:** SQLite (`db.sqlite3`). It lives on the server and is not
+  overwritten by `deploy.sh`. Back it up by copying the file.
+* **Static/CSS:** the UI uses Tailwind via CDN, so no build step is required.
+  `collectstatic` gathers Django admin assets into `staticfiles/`.
+* **HTTPS:** the site is served over plain HTTP. A bare IP cannot get a
+  Let's Encrypt certificate; add a domain name first if you need TLS.

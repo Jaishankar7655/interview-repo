@@ -1,0 +1,23 @@
+# deploy/gunicorn.service  (systemd unit template)
+#
+# The __APP_DIR__ and __APP_USER__ placeholders are filled in automatically by
+# deploy.sh and the result is written to /etc/systemd/system/gunicorn.service.
+#
+# To install manually, replace the placeholders yourself, e.g.:
+#   sudo sed -e "s|__APP_DIR__|/var/www/school-app|g" \
+#            -e "s|__APP_USER__|ubuntu|g" \
+#            deploy/gunicorn.service | sudo tee /etc/systemd/system/gunicorn.service
+
+[Unit]
+Description=Gunicorn daemon for School-app (Django)
+After=network.target
+
+[Service]
+User=__APP_USER__
+WorkingDirectory=__APP_DIR__
+ExecStart=__APP_DIR__/venv/bin/gunicorn -c __APP_DIR__/deploy/gunicorn.conf.py project.wsgi:application
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

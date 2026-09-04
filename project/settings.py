@@ -7,6 +7,18 @@ from django.core.management.utils import get_random_secret_key
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # -----------------------------
+# Load environment variables from .env (if present)
+# -----------------------------
+# This makes settings work identically whether the app is launched via
+# gunicorn (systemd), `manage.py`, or the dev server.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(BASE_DIR / '.env')
+except ImportError:
+    # python-dotenv is optional; env vars can also be provided by the OS/systemd.
+    pass
+
+# -----------------------------
 # Secrets from .env
 # -----------------------------
 SECRET_KEY = os.environ.get(
@@ -14,9 +26,25 @@ SECRET_KEY = os.environ.get(
     get_random_secret_key()  # fallback if .env missing
 )
 
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+# Defaults are production-safe: DEBUG is off unless explicitly enabled.
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
+ALLOWED_HOSTS = [
+    h.strip()
+    for h in os.environ.get(
+        'ALLOWED_HOSTS', '34.229.200.54,localhost,127.0.0.1'
+    ).split(',')
+    if h.strip()
+]
+
+# Origins trusted for CSRF (needed for POST forms when DEBUG=False / behind Nginx).
+CSRF_TRUSTED_ORIGINS = [
+    o.strip()
+    for o in os.environ.get(
+        'CSRF_TRUSTED_ORIGINS', 'http://34.229.200.54'
+    ).split(',')
+    if o.strip()
+]
 
 # -----------------------------
 # Installed Apps
@@ -29,7 +57,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'app',
-    'tailwind',
 ]
 
 # -----------------------------
@@ -69,16 +96,12 @@ TEMPLATES = [
 WSGI_APPLICATION = 'project.wsgi.application'
 
 # -----------------------------
-# Database (MySQL)
+# Database (SQLite)
 # -----------------------------
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get('MYSQL_DATABASE'),
-        'USER': os.environ.get('MYSQL_USER',),
-        'PASSWORD': os.environ.get('MYSQL_PASSWORD'),
-        'HOST': os.environ.get('MYSQL_HOST'), 
-        'PORT': os.environ.get('MYSQL_PORT'),
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.environ.get('SQLITE_PATH', BASE_DIR / 'db.sqlite3'),
     }
 }
 
@@ -104,7 +127,10 @@ USE_TZ = True
 # Static and Media
 # -----------------------------
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+# Include the project-level static dir only if it exists (avoids warnings).
+STATICFILES_DIRS = [
+    d for d in [os.path.join(BASE_DIR, 'static')] if os.path.isdir(d)
+]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # for collectstatic
 
 MEDIA_URL = '/media/'
