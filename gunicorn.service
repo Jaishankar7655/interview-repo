@@ -1,0 +1,20 @@
+[Unit]
+Description=Gunicorn daemon for School App
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/var/www/school-app
+EnvironmentFile=/var/www/school-app/.env
+ExecStart=/var/www/school-app/venv/bin/gunicorn \
+    --workers 3 \
+    --bind 127.0.0.1:8000 \
+    --access-logfile /var/log/gunicorn/access.log \
+    --error-logfile /var/log/gunicorn/error.log \
+    project.wsgi:application
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
